@@ -117,7 +117,44 @@ export default function MessageList({ room, client, currentUserId, onReact, onRe
             return Object.keys(reactions).length > 0 ? reactions : undefined;
         };
 
-        loadMessages();
+        // Load full history automatically
+        const loadFullHistory = async () => {
+            console.log('🔄 Starting full history load...');
+            const timeline = room.getLiveTimeline();
+
+            // Keep paginating until we have all messages
+            let hasMore = true;
+            let iterations = 0;
+            const maxIterations = 100; // Safety limit
+
+            while (hasMore && iterations < maxIterations) {
+                const token = timeline.getPaginationToken('b' as any);
+                console.log(`📄 Iteration ${iterations + 1}: Token exists: ${!!token}`);
+
+                if (!token) {
+                    console.log('✅ No more pagination tokens - reached the beginning!');
+                    hasMore = false;
+                    break;
+                }
+
+                try {
+                    await client.paginateEventTimeline(timeline, { backwards: true, limit: 100 });
+                    const currentEvents = timeline.getEvents();
+                    const messageCount = currentEvents.filter((e: MatrixEvent) => e.getType() === 'm.room.message').length;
+                    console.log(`📊 After iteration ${iterations + 1}: ${messageCount} total messages loaded`);
+                    iterations++;
+                } catch (error) {
+                    console.error('❌ Error loading history:', error);
+                    hasMore = false;
+                }
+            }
+
+            console.log(`🏁 Finished loading history after ${iterations} iterations`);
+            setCanLoadMore(false);
+            loadMessages();
+        };
+
+        loadFullHistory();
 
         // Listen for new messages and reactions
         const onTimelineEvent = (event: MatrixEvent) => {

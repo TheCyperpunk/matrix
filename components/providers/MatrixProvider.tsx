@@ -62,7 +62,7 @@ export function MatrixProvider({ children, accessToken, userId, homeserverUrl }:
             setClient(matrixClient);
 
             // Start client sync with error handling
-            matrixClient.startClient({ initialSyncLimit: 10 }).catch((err) => {
+            matrixClient.startClient({ initialSyncLimit: 100 }).catch((err) => {
                 console.error('Failed to start Matrix client:', err);
                 setError('Failed to connect to Matrix server');
                 setIsSyncing(false);
